@@ -155,6 +155,26 @@ extension Prebuilt.BoundedIntegerParserError: ErrorNamespaced, ErrorDispositionP
     public var errorDisposition: ErrorDisposition? { .invalid_input }
 }
 
+extension Prebuilt.DecimalNumberParserError: ErrorNamespaced, ErrorDispositionProviding {
+    public static let errorNamespace = "parsers.decimal_number"
+
+    public var errorCode: String {
+        switch self {
+        case .empty: return "empty"
+        case .noDigits: return "no_digits"
+        case .invalidCharacter: return "invalid_character"
+        case .misplacedSign: return "misplaced_sign"
+        case .misplacedSeparator: return "misplaced_separator"
+        case .multipleDecimalSeparators: return "multiple_decimal_separators"
+        case .unitNotAllowed: return "unit_not_allowed"
+        case .negativeNotAllowed: return "negative_not_allowed"
+        case .outOfRange: return "out_of_range"
+        }
+    }
+
+    public var errorDisposition: ErrorDisposition? { .invalid_input }
+}
+
 extension Prebuilt.CORSOriginPatternError: ErrorNamespaced, ErrorDispositionProviding {
     public static let errorNamespace = "parsers.cors_origin_pattern"
 

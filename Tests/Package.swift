@@ -39,6 +39,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Parsers", package: "Parsers"),
                 .product(name: "ParsersStructuredContent", package: "Parsers"),
+                .product(name: "Parsing", package: "Parsing"),
                 .product(name: "GrammarParsing", package: "Parsing"),
                 .product(name: "GrammarSyntax", package: "Parsing"),
                 .product(name: "Grammar", package: "Grammar"),

@@ -6,6 +6,7 @@ enum ParserTestSuite {
         title: "Parser tests"
     ) {
         prebuiltIPAddressRegressionSuite
+        prebuiltDecimalNumberSuite
         markdownStructuredContentSuite
         pklSyntaxSuite
         pklParserSuite

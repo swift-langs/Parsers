@@ -21,11 +21,11 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swift-langs/Parsing.git", branch: "master"),
         .package(url: "https://github.com/swift-langs/Grammar.git", branch: "master"),
-        .package(url: "https://github.com/leviouwendijk/Methods.git", branch: "master"),
-        .package(url: "https://github.com/leviouwendijk/Primitives.git", branch: "master"),
-        .package(url: "https://github.com/leviouwendijk/Position.git", branch: "master"),
+        .package(url: "https://github.com/swift-lco/Methods.git", branch: "master"),
+        .package(url: "https://github.com/swift-lco/Primitives.git", branch: "master"),
+        .package(url: "https://github.com/swift-lco/Position.git", branch: "master"),
         .package(url: "https://github.com/swift-dsl/DSL.git", branch: "master"),
-        .package(url: "https://github.com/leviouwendijk/Errors.git", branch: "master"),
+        .package(url: "https://github.com/swift-lco/Errors.git", branch: "master"),
     ],
     targets: [
         .target(

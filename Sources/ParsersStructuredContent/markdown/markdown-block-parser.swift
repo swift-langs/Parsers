@@ -31,16 +31,6 @@ struct MarkdownBlockParser {
     }
 
     mutating func parse() -> StructuredContent {
-        .collection(
-            parseBlocks(
-                stoppingBeforeHeadingAtOrAbove: nil
-            )
-        )
-    }
-
-    private mutating func parseBlocks(
-        stoppingBeforeHeadingAtOrAbove level: Int?
-    ) -> [StructuredContent] {
         var blocks: [StructuredContent] = []
 
         while index < lines.count {
@@ -50,16 +40,23 @@ struct MarkdownBlockParser {
             }
 
             if let heading = heading(in: lines[index]) {
-                if let level,
-                   heading.level <= level
-                {
-                    break
-                }
-
+                index += 1
                 blocks.append(
-                    parseSection(
-                        heading
+                    .heading(
+                        level: heading.level,
+                        anchor: nil,
+                        content: MarkdownInlineParser.parse(
+                            heading.title
+                        )
                     )
+                )
+                continue
+            }
+
+            if isRule(lines[index]) {
+                index += 1
+                blocks.append(
+                    .rule
                 )
                 continue
             }
@@ -69,30 +66,8 @@ struct MarkdownBlockParser {
             )
         }
 
-        return blocks
-    }
-
-    private mutating func parseSection(
-        _ heading: Heading
-    ) -> StructuredContent {
-        index += 1
-
-        let content = parseBlocks(
-            stoppingBeforeHeadingAtOrAbove:
-                heading.level
-        )
-
-        return .group(
-            role: .init(
-                rawValue:
-                    "markdown.heading.\(heading.level)"
-            ),
-            title: MarkdownInlineParser.parse(
-                heading.title
-            ),
-            content: .collection(
-                content
-            )
+        return .collection(
+            blocks
         )
     }
 
@@ -336,12 +311,25 @@ struct MarkdownBlockParser {
             index += 1
         }
 
-        return .paragraph(
-            MarkdownInlineParser.parse(
-                paragraphLines.joined(
-                    separator: " "
-                )
+        let inline = MarkdownInlineParser.parse(
+            paragraphLines.joined(
+                separator: " "
             )
+        )
+
+        // A paragraph that is only an image is the image block.
+        if inline.count == 1,
+           let image = MarkdownInlineParser.image(
+               paragraphLines.joined(
+                   separator: " "
+               )
+           )
+        {
+            return image
+        }
+
+        return .paragraph(
+            inline
         )
     }
 }

@@ -36,59 +36,57 @@ extension ParserTestSuite {
 
             let expected: StructuredContent =
                 .collection([
-                    .group(
-                        role: "markdown.heading.1",
-                        title: [
+                    .heading(
+                        level: 1,
+                        anchor: nil,
+                        content: [
                             .text("Runtime"),
-                        ],
-                        content:
+                        ]
+                    ),
+                    .paragraph([
+                        .text("Use "),
+                        .strong([
+                            .text("typed"),
+                        ]),
+                        .text(" "),
+                        .code("ToolPlan"),
+                        .text(" values."),
+                    ]),
+                    .list(
+                        style: .unordered,
+                        items: [
+                            .paragraph([
+                                .text("observe"),
+                            ]),
                             .collection([
                                 .paragraph([
-                                    .text("Use "),
-                                    .strong([
-                                        .text("typed"),
-                                    ]),
-                                    .text(" "),
-                                    .code("ToolPlan"),
-                                    .text(" values."),
+                                    .text("mutate"),
                                 ]),
                                 .list(
                                     style: .unordered,
                                     items: [
                                         .paragraph([
-                                            .text("observe"),
-                                        ]),
-                                        .collection([
-                                            .paragraph([
-                                                .text("mutate"),
-                                            ]),
-                                            .list(
-                                                style: .unordered,
-                                                items: [
-                                                    .paragraph([
-                                                        .text("approve"),
-                                                    ]),
-                                                ]
-                                            ),
+                                            .text("approve"),
                                         ]),
                                     ]
                                 ),
-                                .quote(
-                                    .collection([
-                                        .paragraph([
-                                            .text("Keep "),
-                                            .emphasis([
-                                                .text("raw"),
-                                            ]),
-                                            .text(" markdown."),
-                                        ]),
-                                    ])
-                                ),
-                                .code(
-                                    language: "swift",
-                                    source: "let value = 1"
-                                ),
-                            ])
+                            ]),
+                        ]
+                    ),
+                    .quote(
+                        .collection([
+                            .paragraph([
+                                .text("Keep "),
+                                .emphasis([
+                                    .text("raw"),
+                                ]),
+                                .text(" markdown."),
+                            ]),
+                        ])
+                    ),
+                    .code(
+                        language: "swift",
+                        source: "let value = 1"
                     ),
                 ])
 
@@ -99,7 +97,7 @@ extension ParserTestSuite {
             )
         }
 
-        Test("headings form nested semantic sections") {
+        Test("headings are flat blocks in document order") {
             let parsed =
                 MarkdownStructuredContentParser.parse(
                     """
@@ -109,58 +107,61 @@ extension ParserTestSuite {
 
                     ## Child
 
-                    Body.
+                    * * *
 
                     ### Grandchild
-
-                    More.
                     """
                 )
 
             let expected: StructuredContent =
                 .collection([
-                    .group(
-                        role: "markdown.heading.1",
-                        title: [
-                            .text("Parent"),
-                        ],
-                        content:
-                            .collection([
-                                .paragraph([
-                                    .text("Intro."),
-                                ]),
-                                .group(
-                                    role: "markdown.heading.2",
-                                    title: [
-                                        .text("Child"),
-                                    ],
-                                    content:
-                                        .collection([
-                                            .paragraph([
-                                                .text("Body."),
-                                            ]),
-                                            .group(
-                                                role: "markdown.heading.3",
-                                                title: [
-                                                    .text("Grandchild"),
-                                                ],
-                                                content:
-                                                    .collection([
-                                                        .paragraph([
-                                                            .text("More."),
-                                                        ]),
-                                                    ])
-                                            ),
-                                        ])
-                                ),
-                            ])
-                    ),
+                    .heading(level: 1, anchor: nil, content: [.text("Parent")]),
+                    .paragraph([.text("Intro.")]),
+                    .heading(level: 2, anchor: nil, content: [.text("Child")]),
+                    .rule,
+                    .heading(level: 3, anchor: nil, content: [.text("Grandchild")]),
                 ])
 
             try Expect.equal(
                 parsed,
                 expected,
                 "markdown.structured-content.headings"
+            )
+        }
+
+        Test("links and images map to link targets and image blocks") {
+            let parsed =
+                MarkdownStructuredContentParser.parse(
+                    """
+                    See [the **guide**](https://example.com/guide "Guide"), [above](#setup), <https://example.com> and ![a dog](dog.png) inline.
+
+                    ![A dog](https://example.com/dog.png)
+                    """
+                )
+
+            let expected: StructuredContent =
+                .collection([
+                    .paragraph([
+                        .text("See "),
+                        .link(
+                            target: .external("https://example.com/guide"),
+                            content: [.text("the "), .strong([.text("guide")])]
+                        ),
+                        .text(", "),
+                        .link(target: .anchor(.init(rawValue: "setup")), content: [.text("above")]),
+                        .text(", "),
+                        .link(target: .external("https://example.com"), content: [.text("https://example.com")]),
+                        .text(" and "),
+                        .link(target: .external("dog.png"), content: [.text("a dog")]),
+                        .text(" inline."),
+                    ]),
+                    .image(source: .external("https://example.com/dog.png"), alt: "A dog"),
+                ])
+
+            try Expect.equal(
+                parsed,
+                expected,
+                "markdown.structured-content.links"
             )
         }
 
@@ -229,14 +230,14 @@ extension ParserTestSuite {
         Test("unsupported or incomplete syntax remains text") {
             let parsed =
                 MarkdownStructuredContentParser.parse(
-                    "Keep *unfinished and [links](raw) unchanged."
+                    "Keep *unfinished and [links](unclosed unchanged."
                 )
 
             let expected: StructuredContent =
                 .collection([
                     .paragraph([
                         .text(
-                            "Keep *unfinished and [links](raw) unchanged."
+                            "Keep *unfinished and [links](unclosed unchanged."
                         ),
                     ]),
                 ])

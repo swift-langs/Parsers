@@ -6,9 +6,34 @@ extension MarkdownBlockParser {
         _ line: String
     ) -> Bool {
         heading(in: line) != nil
+            || isRule(line)
             || fence(in: line) != nil
             || isQuote(line)
             || listMarker(in: line) != nil
+    }
+
+    /// A thematic break: three or more of one of `-`, `*`, `_`, optionally
+    /// spaced, and nothing else.
+    func isRule(
+        _ line: String
+    ) -> Bool {
+        let marks = line.filter {
+            $0 != " "
+                && $0 != "\t"
+        }
+
+        guard marks.count >= 3,
+              let mark = marks.first,
+              mark == "-"
+                || mark == "*"
+                || mark == "_"
+        else {
+            return false
+        }
+
+        return marks.allSatisfy {
+            $0 == mark
+        }
     }
 
     func heading(

@@ -1,4 +1,5 @@
 import DSL
+import Foundation
 
 enum MarkdownInlineParser {
     static func parse(
@@ -43,6 +44,53 @@ enum MarkdownInlineParser {
                 )
                 index = closing + 1
                 continue
+            }
+
+            if characters[index] == "!",
+               index + 1 < characters.count,
+               characters[index + 1] == "[",
+               let link = linkSyntax(in: characters, from: index + 1)
+            {
+                // Inside running text an image can only be referred to.
+                result.append(
+                    .link(
+                        target: target(link.destination),
+                        content: [.text(link.text)]
+                    )
+                )
+                index = link.end
+                continue
+            }
+
+            if characters[index] == "[",
+               let link = linkSyntax(in: characters, from: index)
+            {
+                result.append(
+                    .link(
+                        target: target(link.destination),
+                        content: parse(link.text)
+                    )
+                )
+                index = link.end
+                continue
+            }
+
+            if characters[index] == "<",
+               let closing = closingIndex(for: [">"], in: characters, from: index + 1)
+            {
+                let url = String(characters[(index + 1)..<closing])
+                if url.contains("://"),
+                   !url.contains(" ")
+                {
+                    result.append(
+                        .link(
+                            target: .external(url),
+                            content: [.text(url)]
+                        )
+                    )
+                    index = closing + 1
+                    continue
+                }
             }
 
             if index + 1 < characters.count,
@@ -120,6 +168,121 @@ enum MarkdownInlineParser {
         }
 
         return result
+    }
+
+    /// A whole-source `![alt](src)`, as an image block.
+    static func image(
+        _ source: String
+    ) -> StructuredContent? {
+        let characters = Array(
+            source.trimmingCharacters(in: .whitespaces)
+        )
+
+        guard characters.count > 1,
+              characters[0] == "!",
+              let link = linkSyntax(in: characters, from: 1),
+              link.end == characters.count
+        else {
+            return nil
+        }
+
+        return .image(
+            source: .external(link.destination),
+            alt: link.text
+        )
+    }
+
+    struct LinkSyntax {
+        let text: String
+        let destination: String
+        /// Index just past the closing parenthesis.
+        let end: Int
+    }
+
+    /// `[text](destination "title")` starting at the `[`; brackets in the
+    /// text nest, the title is dropped.
+    static func linkSyntax(
+        in characters: [Character],
+        from start: Int
+    ) -> LinkSyntax? {
+        guard start < characters.count,
+              characters[start] == "["
+        else {
+            return nil
+        }
+
+        var depth = 0
+        var index = start
+        var textEnd: Int?
+
+        while index < characters.count {
+            switch characters[index] {
+            case "\\":
+                index += 1
+            case "[":
+                depth += 1
+            case "]":
+                depth -= 1
+                if depth == 0 {
+                    textEnd = index
+                }
+            default:
+                break
+            }
+
+            if textEnd != nil {
+                break
+            }
+
+            index += 1
+        }
+
+        guard let textEnd,
+              textEnd + 1 < characters.count,
+              characters[textEnd + 1] == "(",
+              let closing = closingIndex(for: [")"], in: characters, from: textEnd + 2)
+        else {
+            return nil
+        }
+
+        var destination = String(characters[(textEnd + 2)..<closing])
+            .trimmingCharacters(in: .whitespaces)
+
+        if let space = destination.firstIndex(of: " ") {
+            destination = String(destination[..<space])
+        }
+
+        if destination.hasPrefix("<"),
+           destination.hasSuffix(">")
+        {
+            destination = String(destination.dropFirst().dropLast())
+        }
+
+        guard !destination.isEmpty else {
+            return nil
+        }
+
+        return .init(
+            text: String(characters[(start + 1)..<textEnd]),
+            destination: destination,
+            end: closing + 1
+        )
+    }
+
+    static func target(
+        _ destination: String
+    ) -> StructuredContent.LinkTarget {
+        if destination.hasPrefix("#"),
+           destination.count > 1
+        {
+            return .anchor(
+                .init(
+                    rawValue: String(destination.dropFirst())
+                )
+            )
+        }
+
+        return .external(destination)
     }
 
     private static func closingIndex(
